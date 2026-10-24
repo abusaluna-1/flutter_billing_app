@@ -9,6 +9,7 @@ import '../../../billing/presentation/bloc/billing_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../domain/entities/cart_item.dart';
+import '../widgets/add_service_dialog.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -68,6 +69,17 @@ class _HomePageState extends State<HomePage> {
         break; // Process one barcode at a time per frame
       }
     }
+  }
+
+  /// Tambah item JASA manual ke cart (tanpa barcode, tanpa stok).
+  Future<void> _addService() async {
+    _scannerController.stop();
+    final service = await showAddServiceDialog(context);
+    if (!mounted) return;
+    if (service != null) {
+      context.read<BillingBloc>().add(AddProductToCartEvent(service));
+    }
+    if (_isCameraOn) _scannerController.start();
   }
 
   @override
@@ -412,6 +424,19 @@ class _HomePageState extends State<HomePage> {
             },
           ),
           const Divider(height: 1),
+
+          // Tambah item jasa manual
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextButton.icon(
+                onPressed: _addService,
+                icon: const Icon(Icons.build_outlined, size: 18),
+                label: const Text('Tambah Jasa'),
+              ),
+            ),
+          ),
 
           // List View
           Expanded(
