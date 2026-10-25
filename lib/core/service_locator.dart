@@ -7,6 +7,10 @@ import '../../features/shop/data/repositories/shop_repository_impl.dart';
 import '../../features/shop/domain/repositories/shop_repository.dart';
 import '../../features/shop/domain/usecases/shop_usecases.dart';
 import '../../features/shop/presentation/bloc/shop_bloc.dart';
+import '../../features/service/data/repositories/service_repository_impl.dart';
+import '../../features/service/domain/repositories/service_repository.dart';
+import '../../features/service/domain/usecases/service_usecases.dart';
+import '../../features/service/presentation/bloc/service_bloc.dart';
 import '../../features/settings/data/repositories/printer_repository_impl.dart';
 import '../../features/settings/domain/repositories/printer_repository.dart';
 import '../../features/settings/presentation/bloc/printer_bloc.dart';
@@ -58,6 +62,33 @@ Future<void> init() async {
   // Repository
   sl.registerLazySingleton<ShopRepository>(
     () => ShopRepositoryImpl(),
+  );
+
+  // Features - Service (master jasa)
+  sl.registerFactory(
+    () => ServiceBloc(
+      getServices: sl(),
+      addService: sl(),
+      updateService: sl(),
+      setServiceActive: sl(),
+      deleteService: sl(),
+      getCategories: sl(),
+      addCategory: sl(),
+      updateCategory: sl(),
+      deleteCategory: sl(),
+    ),
+  );
+  sl.registerLazySingleton(() => GetServicesUseCase(sl()));
+  sl.registerLazySingleton(() => AddServiceUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateServiceUseCase(sl()));
+  sl.registerLazySingleton(() => SetServiceActiveUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteServiceUseCase(sl()));
+  sl.registerLazySingleton(() => GetServiceCategoriesUseCase(sl()));
+  sl.registerLazySingleton(() => AddServiceCategoryUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateServiceCategoryUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteServiceCategoryUseCase(sl()));
+  sl.registerLazySingleton<ServiceRepository>(
+    () => ServiceRepositoryImpl(),
   );
 
   // Features - Settings / Printer

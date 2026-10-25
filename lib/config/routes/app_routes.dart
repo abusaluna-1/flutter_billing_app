@@ -8,6 +8,10 @@ import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/billing/presentation/pages/scanner_page.dart';
 import '../../features/billing/presentation/pages/checkout_page.dart';
 import '../../features/product/domain/entities/product.dart';
+import '../../features/service/domain/entities/service_item.dart';
+import '../../features/service/presentation/pages/service_category_page.dart';
+import '../../features/service/presentation/pages/service_form_page.dart';
+import '../../features/service/presentation/pages/service_list_page.dart';
 
 final router = GoRouter(
   initialLocation: '/',
@@ -48,6 +52,21 @@ final router = GoRouter(
             }
             return EditProductPage(product: product);
           },
+        ),
+      ],
+    ),
+    GoRoute(
+      path: '/services',
+      builder: (context, state) => const ServiceListPage(),
+      routes: [
+        GoRoute(
+          path: 'form',
+          builder: (context, state) =>
+              ServiceFormPage(service: state.extra as ServiceItem?),
+        ),
+        GoRoute(
+          path: 'categories',
+          builder: (context, state) => const ServiceCategoryPage(),
         ),
       ],
     ),

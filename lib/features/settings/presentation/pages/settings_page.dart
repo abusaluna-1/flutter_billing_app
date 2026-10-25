@@ -109,6 +109,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 _buildDivider(),
                 _buildListItem(
+                  icon: Icons.handyman_outlined,
+                  title: 'Daftar Jasa',
+                  subtitle: 'Kelola jasa & kategori jasa',
+                  onTap: () => context.push('/services'),
+                ),
+                _buildDivider(),
+                _buildListItem(
                   icon: Icons.storefront,
                   title: 'Shop Details',
                   subtitle: 'Edit business info & address',
