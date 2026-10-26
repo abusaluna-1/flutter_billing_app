@@ -10,13 +10,13 @@ class AppValidators {
 
   static String? price(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Please enter a price';
+      return 'Harga wajib diisi';
     }
     if (double.tryParse(value) == null) {
-      return 'Please enter a valid number';
+      return 'Masukkan angka yang valid';
     }
     if (double.parse(value) < 0) {
-      return 'Price cannot be negative';
+      return 'Harga tidak boleh negatif';
     }
     return null;
   }

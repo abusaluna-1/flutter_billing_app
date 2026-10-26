@@ -27,7 +27,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     final result = await getProductByBarcodeUseCase(event.barcode);
     result.fold(
       (failure) =>
-          emit(state.copyWith(error: 'Product not found: ${event.barcode}')),
+          emit(state.copyWith(error: 'Produk tidak ditemukan: ${event.barcode}')),
       (product) {
         add(AddProductToCartEvent(product));
       },
@@ -92,13 +92,13 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         final connected = await printerHelper.connect(savedMac);
         if (!connected) {
           emit(state.copyWith(
-              error: 'Failed to auto-connect to printer!', clearError: false));
+              error: 'Gagal menyambung otomatis ke printer!', clearError: false));
           emit(state.copyWith(clearError: true));
           return;
         }
       } else {
         emit(state.copyWith(
-            error: 'Printer not connected & no saved printer found!',
+            error: 'Printer belum tersambung dan belum ada printer tersimpan!',
             clearError: false));
         emit(state.copyWith(clearError: true));
         return;
@@ -130,7 +130,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       emit(state.copyWith(isPrinting: false, printSuccess: true));
     } catch (e) {
       emit(state.copyWith(
-          isPrinting: false, error: 'Print failed: $e', clearError: false));
+          isPrinting: false, error: 'Gagal mencetak: $e', clearError: false));
       // Reset error instantly avoids sticky error
       emit(state.copyWith(clearError: true));
     }

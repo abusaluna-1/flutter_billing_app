@@ -1,4 +1,5 @@
 import 'package:billing_app/core/services/sound_service.dart';
+import 'package:billing_app/core/utils/rupiah.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -132,7 +133,7 @@ class _HomePageState extends State<HomePage> {
                     if (_isCameraOn && mounted) _scannerController.start();
                   },
             icon: Icons.payment,
-            label: 'Review Order',
+            label: 'Lihat Pesanan',
           );
         },
       ),
@@ -240,7 +241,7 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 16),
           const Text(
-            'Camera is turned off',
+            'Kamera dimatikan',
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -251,7 +252,7 @@ class _HomePageState extends State<HomePage> {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 32),
             child: Text(
-              'Turn on your camera to start scanning barcodes and items automatically.',
+              'Nyalakan kamera untuk memindai barcode dan menambah item secara otomatis.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white70, fontSize: 12),
             ),
@@ -268,7 +269,7 @@ class _HomePageState extends State<HomePage> {
             ),
             icon: const Icon(Icons.videocam),
             label: const Text(
-              'Turn on Camera',
+              'Nyalakan Kamera',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             onPressed: () {
@@ -381,14 +382,14 @@ class _HomePageState extends State<HomePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Scanned Items',
+                          'Item Terpindai',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         Text(
-                          '$totalItems items total',
+                          '$totalItems item',
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
@@ -400,7 +401,7 @@ class _HomePageState extends State<HomePage> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         const Text(
-                          'TOTAL PRICE',
+                          'TOTAL HARGA',
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -409,7 +410,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                         Text(
-                          '₹${state.totalAmount.toStringAsFixed(2)}',
+                          formatRupiah(state.totalAmount.round()),
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w900,
@@ -494,14 +495,14 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 16),
           const Text(
-            'List is empty',
+            'Daftar masih kosong',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           const SizedBox(height: 8),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 40),
             child: Text(
-              'Scanned items will appear here as you scan them with the camera above.',
+              'Item yang dipindai dengan kamera di atas akan muncul di sini.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey, fontSize: 14),
             ),
@@ -541,7 +542,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '₹${item.product.price.toStringAsFixed(2)}',
+                  formatRupiah(item.product.price.round()),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,

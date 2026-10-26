@@ -62,7 +62,7 @@ class _ScannerPageState extends State<ScannerPage> {
           onPressed: () => context.pop(),
         ),
         title: const Text(
-          'Scan Barcode',
+          'Pindai Barcode',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
       ),
@@ -110,7 +110,7 @@ class _ScannerPageState extends State<ScannerPage> {
             left: 0,
             right: 0,
             child: Text(
-              'Align barcode within frame',
+              'Arahkan barcode ke dalam bingkai',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white, fontSize: 16),
             ),

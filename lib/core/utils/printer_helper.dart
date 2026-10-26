@@ -1,3 +1,4 @@
+import 'package:billing_app/core/utils/rupiah.dart';
 import 'package:intl/intl.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -124,8 +125,10 @@ class PrinterHelper {
     bytes += EscPos.alignCenter;
     bytes += EscPos.boldOn;
     bytes += EscPos.textLarge;
-    bytes += _textToBytes(shopName);
-    bytes += EscPos.lineFeed;
+    if (shopName.trim().isNotEmpty) {
+      bytes += _textToBytes(shopName);
+      bytes += EscPos.lineFeed;
+    }
 
     // Address & Phone (Normal, Center)
     bytes += EscPos.textNormal;
@@ -138,12 +141,14 @@ class PrinterHelper {
       bytes += _textToBytes(address2);
       bytes += EscPos.lineFeed;
     }
-    bytes += _textToBytes(phone);
-    bytes += EscPos.lineFeed;
+    if (phone.trim().isNotEmpty) {
+      bytes += _textToBytes(phone);
+      bytes += EscPos.lineFeed;
+    }
 
     // Date and Time
     String formattedDate =
-        DateFormat('dd-MM-yyyy hh:mm a').format(DateTime.now());
+        DateFormat('dd-MM-yyyy HH:mm').format(DateTime.now());
     bytes += _textToBytes(formattedDate);
     bytes += EscPos.lineFeed;
 
@@ -152,22 +157,24 @@ class PrinterHelper {
 
     // Header (Align Left)
     bytes += EscPos.alignLeft;
-    bytes += _textToBytes('Item            Price   Total');
-    bytes += EscPos.lineFeed;
-    bytes += _textToBytes('--------------------------------');
-    bytes += EscPos.lineFeed;
 
-    // Items
+    // Item: baris 1 = nama, baris 2 = "jumlah x harga" dan total (rata kanan).
+    // Dua baris dipakai agar nominal Rupiah tidak terpotong di kertas 32 kolom.
+    const width = 32;
     for (var item in items) {
-      String name = item['name'].toString();
-      String qty = item['qty'].toString();
-      String price = item['price'].toString();
-      String totalItem = item['total'].toString();
+      final name = item['name'].toString();
+      final qty = item['qty'].toString();
+      final price = formatRupiah((item['price'] as num).round());
+      final totalItem = formatRupiah((item['total'] as num).round());
 
-      String prefix = '${qty}x $name';
-      if (prefix.length > 16) prefix = prefix.substring(0, 16);
+      bytes += _textToBytes(name.length > width ? name.substring(0, width) : name);
+      bytes += EscPos.lineFeed;
 
-      String line = prefix.padRight(16) + price.padRight(8) + totalItem;
+      final left = '$qty x $price';
+      final gap = width - left.length - totalItem.length;
+      final line = gap >= 1
+          ? left + ' ' * gap + totalItem
+          : '$left $totalItem';
       bytes += _textToBytes(line);
       bytes += EscPos.lineFeed;
     }
@@ -178,7 +185,7 @@ class PrinterHelper {
     // Total (Align Right)
     bytes += EscPos.alignRight;
     bytes += EscPos.boldOn;
-    bytes += _textToBytes('TOTAL: $total');
+    bytes += _textToBytes('TOTAL: ${formatRupiah(total.round())}');
     bytes += EscPos.lineFeed;
     bytes += EscPos.boldOff;
     bytes += EscPos.lineFeed;
