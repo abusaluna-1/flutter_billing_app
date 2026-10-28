@@ -1,11 +1,13 @@
-import 'package:flutter/material.dart';
+import 'package:billing_app/core/theme/app_theme.dart';
 import 'package:billing_app/core/utils/rupiah.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../bloc/product_bloc.dart';
+
+import '../../../service/domain/entities/service_item.dart';
+import '../../../service/presentation/bloc/service_bloc.dart';
 import '../../domain/entities/product.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/utils/app_validators.dart';
+import '../bloc/product_bloc.dart';
 
 class ProductListPage extends StatefulWidget {
   const ProductListPage({super.key});
@@ -17,14 +19,13 @@ class ProductListPage extends StatefulWidget {
 class _ProductListPageState extends State<ProductListPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  String _filter = 'Semua';
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text.toLowerCase();
-      });
+      setState(() => _searchQuery = _searchController.text.toLowerCase());
     });
   }
 
@@ -34,24 +35,48 @@ class _ProductListPageState extends State<ProductListPage> {
     super.dispose();
   }
 
-  void _scanQR(List<Product> products) async {
+  Future<void> _scanQR(List<Product> products) async {
     final barcode = await context.push<String>('/scanner');
-    if (barcode != null && barcode.isNotEmpty) {
-      final matchedProduct =
-          products.where((p) => p.barcode == barcode).firstOrNull;
-      if (matchedProduct != null) {
-        _searchController.text = matchedProduct.name;
-      } else {
-        _searchController.text =
-            barcode; // If not found, just put barcode in search
-      }
-    }
+    if (barcode == null || barcode.isEmpty) return;
+    final match = products.where((product) => product.barcode == barcode).firstOrNull;
+    _searchController.text = match?.name ?? barcode;
+  }
+
+  Product _asProduct(ServiceItem service) => Product(
+        id: service.id,
+        name: service.name,
+        barcode: '',
+        price: (service.defaultPrice ?? 0).toDouble(),
+        isService: true,
+      );
+
+  Future<void> _showAddOptions() async {
+    final selection = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.inventory_2_outlined),
+              title: const Text('Tambah Produk'),
+              onTap: () => Navigator.pop(context, 'product'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.build_outlined),
+              title: const Text('Tambah Jasa'),
+              onTap: () => Navigator.pop(context, 'service'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || selection == null) return;
+    await context.push(selection == 'product' ? '/products/add' : '/services/form');
   }
 
   @override
   Widget build(BuildContext context) {
     final borderColor = Colors.grey[100]!;
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -61,19 +86,16 @@ class _ProductListPageState extends State<ProductListPage> {
               size: 28, color: Theme.of(context).primaryColor),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Produk & Sparepart',
+        title: const Text('Produk & Jasa',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
       ),
       body: Column(
         children: [
-          // Search Bar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: BlocBuilder<ProductBloc, ProductState>(
-                builder: (context, state) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              builder: (context, state) => Column(
                 children: [
                   Row(
                     children: [
@@ -82,14 +104,9 @@ class _ProductListPageState extends State<ProductListPage> {
                           controller: _searchController,
                           textCapitalization: TextCapitalization.words,
                           decoration: InputDecoration(
-                            hintText: 'Pindai atau ketik barcode',
-                            prefixIcon: Icon(
-                              Icons.search,
-                              color: Colors.grey[400],
-                            ),
+                            hintText: 'Cari nama atau barcode',
+                            prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
                           ),
-                          validator:
-                              AppValidators.required('Barcode wajib diisi'),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -102,156 +119,138 @@ class _ProductListPageState extends State<ProductListPage> {
                           icon: const Icon(Icons.qr_code_scanner,
                               color: AppTheme.primaryColor),
                           onPressed: () => _scanQR(state.products),
-                          padding: const EdgeInsets.all(15),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  const Text('Ketuk ikon untuk membuka kamera pemindai',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF4C669A))),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: ['Semua', 'Produk', 'Jasa']
+                        .map((filter) => ChoiceChip(
+                              label: Text(filter),
+                              selected: _filter == filter,
+                              onSelected: (_) => setState(() => _filter = filter),
+                            ))
+                        .toList(),
+                  ),
                 ],
-              );
-            }),
+              ),
+            ),
           ),
-
           Expanded(
             child: BlocConsumer<ProductBloc, ProductState>(
               listener: (context, state) {
-                if (state.status == ProductStatus.success &&
-                    state.message != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text(state.message!),
-                        backgroundColor: Colors.green),
-                  );
-                } else if (state.status == ProductStatus.error &&
-                    state.message != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text(state.message!),
-                        backgroundColor: Colors.red),
-                  );
+                if (state.message != null &&
+                    (state.status == ProductStatus.success ||
+                        state.status == ProductStatus.error)) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(state.message!),
+                    backgroundColor: state.status == ProductStatus.error
+                        ? Colors.red
+                        : Colors.green,
+                  ));
                 }
               },
-              builder: (context, state) {
-                if (state.status == ProductStatus.loading &&
-                    state.products.isEmpty) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (state.products.isEmpty) {
-                  if (state.status == ProductStatus.error) {
-                    return Center(child: Text('Error: ${state.message}'));
+              builder: (context, productState) =>
+                  BlocBuilder<ServiceBloc, ServiceState>(
+                builder: (context, serviceState) {
+                  if (productState.status == ProductStatus.loading &&
+                      productState.products.isEmpty ||
+                      serviceState.status == ServiceStatus.loading &&
+                          serviceState.services.isEmpty) {
+                    return const Center(child: CircularProgressIndicator());
                   }
-                  return const Center(
-                      child: Text('Belum ada produk. Silakan tambah.'));
-                }
-
-                final filteredProducts = state.products
-                    .where((product) =>
-                        product.name.toLowerCase().contains(_searchQuery) ||
-                        product.barcode.toLowerCase().contains(_searchQuery))
-                    .toList();
-
-                if (filteredProducts.isEmpty) {
-                  return const Center(
-                      child: Text('Tidak ada produk yang cocok.'));
-                }
-
-                return ListView.separated(
-                  padding: const EdgeInsets.only(
-                      left: 16, right: 16, top: 8, bottom: 100),
-                  itemCount: filteredProducts.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final product = filteredProducts[index];
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: borderColor),
-                        boxShadow: const [
-                          BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 4,
-                              offset: Offset(0, 2))
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  product.name,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 16),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  formatRupiah(product.price.round()),
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.grey[600]),
-                                ),
-                              ],
+                  final products = _filter == 'Jasa'
+                      ? <Product>[]
+                      : productState.products;
+                  final services = _filter == 'Produk'
+                      ? <Product>[]
+                      : serviceState.services
+                          .where((service) => service.isActive)
+                          .map(_asProduct)
+                          .toList();
+                  final items = [...products, ...services].where((item) {
+                    return item.name.toLowerCase().contains(_searchQuery) ||
+                        item.barcode.toLowerCase().contains(_searchQuery);
+                  }).toList();
+                  if (items.isEmpty) {
+                    if (productState.status == ProductStatus.error &&
+                        productState.products.isEmpty &&
+                        serviceState.services.isEmpty) {
+                      return Center(child: Text('Error: ${productState.message}'));
+                    }
+                    return const Center(child: Text('Tidak ada item yang cocok.'));
+                  }
+                  return ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                    itemCount: items.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: borderColor),
+                          boxShadow: const [
+                            BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 4,
+                                offset: Offset(0, 2))
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(item.name,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16)),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${item.isService ? 'Jasa' : 'Produk'}'
+                                    '${item.isService ? '' : ' • Stok ${item.stock}'}'
+                                    ' • ${formatRupiah(item.price.round())}',
+                                    style: TextStyle(color: Colors.grey[600]),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primaryColor
-                                      .withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: IconButton(
-                                  icon: const Icon(Icons.edit_rounded,
-                                      color: AppTheme.primaryColor, size: 20),
-                                  constraints: const BoxConstraints(),
-                                  padding: const EdgeInsets.all(8),
-                                  onPressed: () {
-                                    context.push('/products/edit/${product.id}',
-                                        extra: product);
-                                  },
-                                ),
+                            IconButton(
+                              icon: const Icon(Icons.edit_rounded,
+                                  color: AppTheme.primaryColor),
+                              onPressed: () => item.isService
+                                  ? context.push('/services/form',
+                                      extra: serviceState.services
+                                          .firstWhere((s) => s.id == item.id))
+                                  : context.push('/products/edit/${item.id}',
+                                      extra: item),
+                            ),
+                            if (!item.isService)
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline,
+                                    color: Colors.red),
+                                onPressed: () =>
+                                    _confirmDelete(context, item),
                               ),
-                              const SizedBox(width: 8),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.red.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: IconButton(
-                                  icon: const Icon(Icons.delete_outline_rounded,
-                                      color: Colors.red, size: 20),
-                                  constraints: const BoxConstraints(),
-                                  padding: const EdgeInsets.all(8),
-                                  onPressed: () =>
-                                      _confirmDelete(context, product),
-                                ),
-                              ),
-                            ],
-                          )
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/products/add'),
+        onPressed: _showAddOptions,
         backgroundColor: AppTheme.primaryColor,
         foregroundColor: Colors.white,
         shape: const CircleBorder(),
@@ -261,27 +260,25 @@ class _ProductListPageState extends State<ProductListPage> {
   }
 
   void _confirmDelete(BuildContext context, Product product) {
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (innerContext) {
-        return AlertDialog(
-          title: const Text('Hapus Produk'),
-          content: Text('Yakin ingin menghapus ${product.name}?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(innerContext),
-              child: const Text('Batal'),
-            ),
-            TextButton(
-              onPressed: () {
-                context.read<ProductBloc>().add(DeleteProduct(product.id));
-                Navigator.pop(innerContext);
-              },
-              child: const Text('Hapus', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Hapus Produk'),
+        content: Text('Yakin ingin menghapus ${product.name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () {
+              context.read<ProductBloc>().add(DeleteProduct(product.id));
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
   }
 }

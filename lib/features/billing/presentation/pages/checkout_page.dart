@@ -1,10 +1,11 @@
+import 'package:billing_app/core/data/hive_database.dart';
 import 'package:billing_app/core/utils/rupiah.dart';
 import 'package:billing_app/core/widgets/primary_button.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../bloc/billing_bloc.dart';
 
 class CheckoutPage extends StatefulWidget {
@@ -15,241 +16,236 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _customerName = TextEditingController();
+  final _customerPhone = TextEditingController();
+  final _adminName = TextEditingController();
+  final _amountPaid = TextEditingController(text: '0');
+  String _paymentMethod = 'Tunai';
+
+  @override
+  void initState() {
+    super.initState();
+    _adminName.text =
+        HiveDatabase.settingsBox.get('active_admin_name', defaultValue: '');
+  }
+
+  @override
+  void dispose() {
+    _customerName.dispose();
+    _customerPhone.dispose();
+    _adminName.dispose();
+    _amountPaid.dispose();
+    super.dispose();
+  }
+
+  int get _paidAmount =>
+      int.tryParse(_amountPaid.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? -1;
+
   @override
   Widget build(BuildContext context) {
-    const borderColor = Color(0xFFE5E5EA);
-
     return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (bool didPop, dynamic result) {
-          if (didPop) return;
-          context.go('/');
-        },
-        child: Scaffold(
-          appBar: AppBar(
-            title: const Text('Pembayaran',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-            centerTitle: true,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leading: IconButton(
-              icon: Icon(Icons.chevron_left,
-                  size: 28, color: Theme.of(context).primaryColor),
-              onPressed: () {
-                context.go('/');
-              },
-            ),
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) context.go('/');
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Pembayaran',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+          centerTitle: true,
+          leading: IconButton(
+            icon: Icon(Icons.chevron_left,
+                size: 28, color: Theme.of(context).primaryColor),
+            onPressed: () => context.go('/'),
           ),
-          body: BlocConsumer<BillingBloc, BillingState>(
-            listener: (context, state) {
-              if (state.printSuccess) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('Struk berhasil dicetak'),
-                    backgroundColor: Colors.green));
-                // context.read<BillingBloc>().add(ClearCartEvent());
-                // context.go('/');
-              }
-            },
-            builder: (context, billingState) {
-              return BlocBuilder<ShopBloc, ShopState>(
-                  builder: (context, shopState) {
-                return Column(
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 16),
-                        child: Column(
-                          children: [
-                            // Table
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: borderColor),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.05),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
-                                  )
-                                ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Table(
-                                  border: const TableBorder(
-                                    horizontalInside:
-                                        BorderSide(color: borderColor),
-                                    bottom: BorderSide(color: borderColor),
-                                  ),
-                                  children: [
-                                    // Header row
-                                    TableRow(
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFFF8FAFC),
-                                        border: Border(
-                                            bottom:
-                                                BorderSide(color: borderColor)),
-                                      ),
-                                      children: [
-                                        _buildHeaderCell(
-                                            'Nama Item', TextAlign.left),
-                                        _buildHeaderCell(
-                                            'Harga', TextAlign.right),
-                                        _buildHeaderCell(
-                                            'Total', TextAlign.right),
-                                      ],
-                                    ),
-                                    // Items rows
-                                    ...billingState.cartItems.map((item) {
-                                      return TableRow(
-                                        children: [
-                                          _buildDataCell(
-                                            '${item.quantity} x ${item.product.name}',
-                                            TextAlign.left,
-                                          ),
-                                          _buildDataCell(
-                                              formatRupiah(item.product.price.round()),
-                                              TextAlign.right,
-                                              isSubtitle: true),
-                                          _buildDataCell(
-                                              formatRupiah(item.total.round()),
-                                              TextAlign.right,
-                                              isBold: true),
-                                        ],
-                                      );
-                                    }),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-
-                            const SizedBox(
-                                height: 120), // padding for bottom fixed bar
-                          ],
+        ),
+        body: BlocConsumer<BillingBloc, BillingState>(
+          listenWhen: (previous, current) =>
+              previous.error != current.error ||
+              previous.completedTransactionNumber !=
+                  current.completedTransactionNumber,
+          listener: (context, state) {
+            if (state.error != null) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(state.error!),
+                backgroundColor: Colors.red,
+              ));
+            }
+            if (state.completedTransactionNumber != null) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(
+                    'Transaksi ${state.completedTransactionNumber} tersimpan'),
+                backgroundColor: Colors.green,
+              ));
+              context.go('/');
+            }
+          },
+          builder: (context, state) {
+            final total = state.checkoutTotalAmount;
+            final enteredAmount = _paidAmount;
+            final paid = enteredAmount < 0
+                ? 0
+                : enteredAmount > total
+                    ? total
+                    : enteredAmount;
+            return Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        _sectionTitle('Item Transaksi'),
+                        ...state.cartItems.map((item) => ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(item.product.name),
+                              subtitle: Text(
+                                  '${item.quantity} x ${formatRupiah(item.product.price.round())}'),
+                              trailing: Text(
+                                  formatRupiah(item.total.round()),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600)),
+                            )),
+                        const Divider(height: 28),
+                        _sectionTitle('Customer'),
+                        TextFormField(
+                          controller: _customerName,
+                          textCapitalization: TextCapitalization.words,
+                          decoration: const InputDecoration(
+                              labelText: 'Nama customer *'),
+                          validator: (value) => value == null || value.trim().isEmpty
+                              ? 'Nama customer wajib diisi'
+                              : null,
                         ),
-                      ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _customerPhone,
+                          keyboardType: TextInputType.phone,
+                          decoration: const InputDecoration(
+                              labelText: 'Nomor HP (opsional)'),
+                        ),
+                        const SizedBox(height: 20),
+                        _sectionTitle('Admin / Kasir'),
+                        TextFormField(
+                          controller: _adminName,
+                          textCapitalization: TextCapitalization.words,
+                          decoration: const InputDecoration(
+                              labelText: 'Nama admin/kasir *'),
+                          validator: (value) => value == null || value.trim().isEmpty
+                              ? 'Nama admin/kasir wajib diisi'
+                              : null,
+                        ),
+                        const SizedBox(height: 20),
+                        _sectionTitle('Pembayaran'),
+                        DropdownButtonFormField<String>(
+                          value: _paymentMethod,
+                          decoration: const InputDecoration(
+                              labelText: 'Metode pembayaran'),
+                          items: const [
+                            'Tunai',
+                            'Transfer',
+                            'QRIS',
+                            'Kartu',
+                          ]
+                              .map((method) => DropdownMenuItem(
+                                    value: method,
+                                    child: Text(method),
+                                  ))
+                              .toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _paymentMethod = value);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _amountPaid,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          decoration: InputDecoration(
+                            labelText: 'Nominal dibayar (Rp)',
+                            suffixIcon: TextButton(
+                              onPressed: () {
+                                _amountPaid.text = '$total';
+                                setState(() {});
+                              },
+                              child: const Text('Isi Lunas'),
+                            ),
+                          ),
+                          onChanged: (_) => setState(() {}),
+                          validator: (value) {
+                            final amount = int.tryParse(value ?? '');
+                            if (amount == null || amount < 0 || amount > total) {
+                              return 'Masukkan nominal antara Rp0 dan total transaksi';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        _amountRow('Total transaksi', total),
+                        _amountRow('Dibayar', paid),
+                        _amountRow('Sisa pembayaran', total - paid, bold: true),
+                      ],
                     ),
-
-                    // Bottom Bar
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        borderRadius: const BorderRadius.horizontal(
-                            left: Radius.circular(24),
-                            right: Radius.circular(24)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, -4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                            ),
-                            child: Column(
-                              children: [
-                                const SizedBox(
-                                  height: 8,
-                                ),
-                                const SizedBox(height: 15),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'TOTAL BAYAR',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.grey[400],
-                                        letterSpacing: 1.2,
-                                      ),
-                                    ),
-                                    Text(
-                                      formatRupiah(billingState.totalAmount.round()),
-                                      style: const TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: -0.5,
-                                        color: Color(0xFF0F172A),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          PrimaryButton(
-                            onPressed: () {
-                              if (shopState is ShopLoaded) {
+                  ),
+                  SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: PrimaryButton(
+                        onPressed: state.isSavingCheckout
+                            ? null
+                            : () {
+                                if (!_formKey.currentState!.validate()) return;
                                 context.read<BillingBloc>().add(
-                                    PrintReceiptEvent(
-                                        shopName: shopState.shop.name,
-                                        address1: shopState.shop.addressLine1,
-                                        address2: shopState.shop.addressLine2,
-                                        phone: shopState.shop.phoneNumber,
-                                        footer: shopState.shop.footerText));
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content:
-                                            Text('Data bengkel belum termuat'),
-                                        backgroundColor: Colors.red));
-                              }
-                            },
-                            label: 'Cetak Struk',
-                            icon: Icons.print,
-                            isLoading: billingState.isPrinting,
-                          ),
-                        ],
+                                      CompleteCheckoutEvent(
+                                        customerName: _customerName.text.trim(),
+                                        customerPhone:
+                                            _customerPhone.text.trim(),
+                                        adminName: _adminName.text.trim(),
+                                        amountPaid: _paidAmount,
+                                        paymentMethod: _paymentMethod,
+                                      ),
+                                    );
+                              },
+                        label: state.isSavingCheckout
+                            ? 'Menyimpan...'
+                            : 'Simpan Transaksi',
+                        icon: Icons.save,
+                        isLoading: state.isSavingCheckout,
                       ),
                     ),
-                  ],
-                );
-              });
-            },
-          ),
-        ));
-  }
-
-  Widget _buildHeaderCell(String text, TextAlign align) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      child: Text(
-        text.toUpperCase(),
-        textAlign: align,
-        style: const TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1,
-          color: Colors.grey,
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildDataCell(String text, TextAlign align,
-      {bool isBold = false, bool isSubtitle = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-      child: Text(
-        text,
-        textAlign: align,
-        style: TextStyle(
-          fontSize: isSubtitle ? 12 : 14,
-          fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
-          color: isSubtitle ? Colors.grey[500] : Colors.black87,
+  Widget _sectionTitle(String title) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(title,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+      );
+
+  Widget _amountRow(String title, int amount, {bool bold = false}) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(title,
+                style: TextStyle(
+                    fontWeight: bold ? FontWeight.bold : FontWeight.normal)),
+            Text(formatRupiah(amount),
+                style: TextStyle(
+                    fontWeight: bold ? FontWeight.bold : FontWeight.normal)),
+          ],
         ),
-      ),
-    );
-  }
+      );
 }

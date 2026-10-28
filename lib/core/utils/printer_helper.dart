@@ -112,8 +112,23 @@ class PrinterHelper {
     required List<Map<String, dynamic>> items, // Name, Qty, Price, Total
     required double total,
     required String footer,
+    String? transactionNumber,
+    String? customerName,
+    String? customerPhone,
+    String? adminName,
+    int? paid,
+    int? remaining,
+    DateTime? createdAt,
   }) async {
-    if (!_isConnected) return;
+    if (!_isConnected) {
+      throw StateError('Printer belum tersambung.');
+    }
+
+    final connectionStatus = await PrintBluetoothThermal.connectionStatus;
+    if (!connectionStatus) {
+      _isConnected = false;
+      throw StateError('Koneksi printer terputus.');
+    }
 
     // Construct ESC/POS bytes manually or using helper
     List<int> bytes = [];
@@ -148,9 +163,20 @@ class PrinterHelper {
 
     // Date and Time
     String formattedDate =
-        DateFormat('dd-MM-yyyy HH:mm').format(DateTime.now());
+        DateFormat('dd-MM-yyyy HH:mm').format(createdAt ?? DateTime.now());
     bytes += _textToBytes(formattedDate);
     bytes += EscPos.lineFeed;
+    for (final entry in <String, String?>{
+      'No': transactionNumber,
+      'Customer': customerName,
+      'HP': customerPhone,
+      'Admin': adminName,
+    }.entries) {
+      if (entry.value != null && entry.value!.trim().isNotEmpty) {
+        bytes += _textToBytes('${entry.key}: ${entry.value!.trim()}');
+        bytes += EscPos.lineFeed;
+      }
+    }
 
     bytes += _textToBytes('--------------------------------');
     bytes += EscPos.lineFeed;
@@ -187,6 +213,15 @@ class PrinterHelper {
     bytes += EscPos.boldOn;
     bytes += _textToBytes('TOTAL: ${formatRupiah(total.round())}');
     bytes += EscPos.lineFeed;
+    if (paid != null) {
+      bytes += EscPos.boldOff;
+      bytes += _textToBytes('DIBAYAR: ${formatRupiah(paid)}');
+      bytes += EscPos.lineFeed;
+    }
+    if (remaining != null) {
+      bytes += _textToBytes('SISA: ${formatRupiah(remaining)}');
+      bytes += EscPos.lineFeed;
+    }
     bytes += EscPos.boldOff;
     bytes += EscPos.lineFeed;
 
@@ -198,7 +233,10 @@ class PrinterHelper {
     bytes += EscPos.lineFeed;
     bytes += EscPos.lineFeed; // Additional Feed
 
-    await PrintBluetoothThermal.writeBytes(bytes);
+    final written = await PrintBluetoothThermal.writeBytes(bytes);
+    if (!written) {
+      throw StateError('Printer gagal menerima data struk.');
+    }
   }
 
   List<int> _textToBytes(String text) {

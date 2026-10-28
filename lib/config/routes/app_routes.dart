@@ -12,6 +12,9 @@ import '../../features/service/domain/entities/service_item.dart';
 import '../../features/service/presentation/pages/service_category_page.dart';
 import '../../features/service/presentation/pages/service_form_page.dart';
 import '../../features/service/presentation/pages/service_list_page.dart';
+import '../../features/transaction/presentation/pages/transaction_detail_page.dart';
+import '../../features/transaction/presentation/pages/transaction_history_page.dart';
+import '../../features/transaction/presentation/pages/transaction_report_page.dart';
 
 final router = GoRouter(
   initialLocation: '/',
@@ -73,6 +76,22 @@ final router = GoRouter(
     GoRoute(
       path: '/shop',
       builder: (context, state) => const ShopDetailsPage(),
+    ),
+    GoRoute(
+      path: '/transactions',
+      builder: (context, state) => const TransactionHistoryPage(),
+      routes: [
+        GoRoute(
+          path: ':id',
+          builder: (context, state) => TransactionDetailPage(
+            transactionId: state.pathParameters['id']!,
+          ),
+        ),
+      ],
+    ),
+    GoRoute(
+      path: '/reports',
+      builder: (context, state) => const TransactionReportPage(),
     ),
   ],
 );

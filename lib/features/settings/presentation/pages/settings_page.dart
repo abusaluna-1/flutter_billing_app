@@ -102,17 +102,24 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildListGroup(
               children: [
                 _buildListItem(
-                  icon: Icons.qr_code_scanner,
-                  title: 'Produk & Sparepart',
-                  subtitle: 'Kelola produk dan barcode',
+                  icon: Icons.inventory_2_outlined,
+                  title: 'Produk & Jasa',
+                  subtitle: 'Kelola produk, sparepart, dan jasa',
                   onTap: () => context.push('/products'),
                 ),
                 _buildDivider(),
                 _buildListItem(
-                  icon: Icons.handyman_outlined,
-                  title: 'Daftar Jasa',
-                  subtitle: 'Kelola jasa & kategori jasa',
-                  onTap: () => context.push('/services'),
+                  icon: Icons.receipt_long_outlined,
+                  title: 'Riwayat Transaksi',
+                  subtitle: 'Lihat transaksi, pembayaran, dan cetak ulang',
+                  onTap: () => context.push('/transactions'),
+                ),
+                _buildDivider(),
+                _buildListItem(
+                  icon: Icons.bar_chart_outlined,
+                  title: 'Laporan',
+                  subtitle: 'Ringkasan penjualan dan piutang',
+                  onTap: () => context.push('/reports'),
                 ),
                 _buildDivider(),
                 _buildListItem(

@@ -37,6 +37,26 @@ class UpdateQuantityEvent extends BillingEvent {
 
 class ClearCartEvent extends BillingEvent {}
 
+class CompleteCheckoutEvent extends BillingEvent {
+  final String customerName;
+  final String customerPhone;
+  final String adminName;
+  final int amountPaid;
+  final String paymentMethod;
+
+  const CompleteCheckoutEvent({
+    required this.customerName,
+    this.customerPhone = '',
+    required this.adminName,
+    required this.amountPaid,
+    required this.paymentMethod,
+  });
+
+  @override
+  List<Object> get props =>
+      [customerName, customerPhone, adminName, amountPaid, paymentMethod];
+}
+
 class PrintReceiptEvent extends BillingEvent {
   final String shopName;
   final String address1;
