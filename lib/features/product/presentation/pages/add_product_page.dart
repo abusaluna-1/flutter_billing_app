@@ -122,7 +122,7 @@ class _AddProductPageState extends State<AddProductPage> {
                   const InputLabel(text: 'Nama Produk'),
                   TextFormField(
                     decoration: const InputDecoration(
-                      hintText: 'e.g. Basmati Rice',
+                      hintText: 'masukkan nama produk anda',
                     ),
                     textCapitalization: TextCapitalization.words,
                     validator: AppValidators.required('Nama wajib diisi'),
