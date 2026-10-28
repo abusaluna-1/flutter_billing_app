@@ -15,7 +15,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
   static const String counterKey = 'transaction_counter';
 
   Box<String>? _box;
-  Box<String>? get box => _box ?? HiveDatabase.settingsBox;
+  Box<String>? get box => _box;
 
   Future<Box<String>> _openBox() async {
     if (_box != null) return _box!;
