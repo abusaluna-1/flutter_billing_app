@@ -2,7 +2,7 @@ import 'package:billing_app/core/service_locator.dart';
 import 'package:billing_app/core/usecase/usecase.dart';
 import 'package:billing_app/core/utils/rupiah.dart';
 import 'package:flutter/material.dart';
-import 'package:fpdart/fpdart.dart'hide State;
+import 'package:fpdart/fpdart.dart' hide State;
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
