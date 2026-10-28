@@ -23,7 +23,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
         canPop: false,
         onPopInvokedWithResult: (bool didPop, dynamic result) {
           if (didPop) return;
-          context.read<BillingBloc>().add(ClearCartEvent());
           context.go('/');
         },
         child: Scaffold(
@@ -37,7 +36,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
               icon: Icon(Icons.chevron_left,
                   size: 28, color: Theme.of(context).primaryColor),
               onPressed: () {
-                context.read<BillingBloc>().add(ClearCartEvent());
                 context.go('/');
               },
             ),
