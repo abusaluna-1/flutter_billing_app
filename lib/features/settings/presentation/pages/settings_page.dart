@@ -219,7 +219,7 @@ class _SettingsPageState extends State<SettingsPage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               child: Text(
-                "To connect a new device, tap on the Settings gear to pair in phone's Bluetooth settings, then return and hit Refresh.",
+                "'Untuk menghubungkan perangkat baru, ketuk ikon Pengaturan Bluetooth di HP, lakukan pemasangan, lalu kembali ke sini dan tekan Segarkan.',.",
                 style: TextStyle(
                     fontSize: 11,
                     fontStyle: FontStyle.italic,
