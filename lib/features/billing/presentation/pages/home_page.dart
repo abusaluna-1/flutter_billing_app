@@ -426,19 +426,6 @@ class _HomePageState extends State<HomePage> {
           ),
           const Divider(height: 1),
 
-          // Tambah item jasa manual
-          Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TextButton.icon(
-                onPressed: _addService,
-                icon: const Icon(Icons.build_outlined, size: 18),
-                label: const Text('Tambah Jasa'),
-              ),
-            ),
-          ),
-
           // List View
           Expanded(
             child: Stack(
